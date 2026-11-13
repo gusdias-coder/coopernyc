@@ -714,15 +714,6 @@ document.querySelector('#save-reference').addEventListener('click',event=>{
   event.currentTarget.textContent=saved.some(item=>item.reference===new URL(dialog.dataset.reference,location.href).href)?'Remover referência salva':'Salvar referência';
 });
 
-const loadMap=document.querySelector('#load-map');
-loadMap.addEventListener('click',()=>{
-  const map=loadMap.nextElementSibling;
-  map.src=map.dataset.src;
-  map.hidden=false;
-  loadMap.hidden=true;
-  map.focus();
-  recordIntent('map-load');
-});
 function recordIntent(name) {
   // Optional local measurements. Enable only during a moderated test.
   if (!preferences('cooper-ux-test',false)) return;
