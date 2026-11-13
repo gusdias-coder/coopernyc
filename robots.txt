@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /
+Sitemap: https://cooper-nyc-redesign.diass-gustavvoo.chatgpt.site/sitemap.xml
