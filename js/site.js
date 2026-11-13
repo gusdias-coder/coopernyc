@@ -127,49 +127,36 @@ if ('IntersectionObserver' in window) {
   document.querySelectorAll('[data-reveal]').forEach(element => element.classList.add('shown'));
 }
 
-/* Motion cover. Keep the poster for reduced motion or data saving. */
-const video = document.querySelector('.hero-media video');
-const videoToggle = document.querySelector('.video-toggle');
-let videoVisible = true;
-let videoOptOut = false;
-function controlVideo() {
-  if (!video.src && !videoOptOut && !reduced.matches && !navigator.connection?.saveData) video.src = video.dataset.src;
-  if (!video.src) return;
-  if (videoVisible && !videoOptOut && !reduced.matches && !document.hidden) {
-    video.play().catch(() => { videoToggle.hidden = true; });
-  } else {
-    video.pause();
-    if (reduced.matches) {
-      video.classList.remove('playing');
-      videoToggle.hidden = true;
-    }
-  }
+/* Crossfade fixed photos to avoid camera movement on the cover. */
+const cover = document.querySelector('.hero-media');
+const coverPhoto = cover.querySelector('.hero-crossfade');
+const coverToggle = cover.querySelector('.cover-toggle');
+let coverVisible = true;
+let coverPaused = false;
+
+function syncCover() {
+  const enabled = coverPhoto.complete && coverPhoto.naturalWidth > 0
+    && !reduced.matches && !navigator.connection?.saveData;
+  cover.classList.toggle('cover-animated', enabled);
+  cover.classList.toggle('cover-running', enabled && coverVisible && !coverPaused && !document.hidden);
+  coverToggle.hidden = !enabled;
+  coverToggle.setAttribute('aria-label', coverPaused ? 'Retomar animação da capa' : 'Pausar animação da capa');
+  coverToggle.querySelector('use').setAttribute('href', coverPaused ? '#play' : '#pause');
 }
-video.addEventListener('playing', () => {
-  video.classList.add('playing');
-  videoToggle.hidden = false;
-  videoToggle.setAttribute('aria-label', 'Pausar vídeo');
-  videoToggle.querySelector('use').setAttribute('href', '#pause');
+coverToggle.addEventListener('click', () => {
+  coverPaused = !coverPaused;
+  syncCover();
 });
-video.addEventListener('pause', () => {
-  videoToggle.setAttribute('aria-label', 'Reproduzir vídeo');
-  videoToggle.querySelector('use').setAttribute('href', '#play');
-});
-videoToggle.addEventListener('click', () => {
-  videoOptOut = !video.paused;
-  controlVideo();
-});
-reduced.addEventListener('change', controlVideo);
-document.addEventListener('visibilitychange', controlVideo);
+coverPhoto.addEventListener('load', syncCover);
+reduced.addEventListener('change', syncCover);
+document.addEventListener('visibilitychange', syncCover);
 if ('IntersectionObserver' in window) {
-  const videoObserver = new IntersectionObserver(([entry]) => {
-    videoVisible = entry.isIntersecting;
-    controlVideo();
-  });
-  videoObserver.observe(video);
+  new IntersectionObserver(([entry]) => {
+    coverVisible = entry.isIntersecting;
+    syncCover();
+  }).observe(cover);
 }
-if (document.readyState === 'complete') setTimeout(controlVideo, 350);
-else addEventListener('load', () => setTimeout(controlVideo, 350), { once:true });
+syncCover();
 
 /* Photo strips and swipe support. */
 function addSwipe(target, step) {
@@ -256,18 +243,11 @@ const dialogFrame = dialog.querySelector('.dialog-image');
 const dialogCaption = dialog.querySelector('#dialog-title');
 const dialogDesc = dialog.querySelector('.dialog-desc');
 const dialogCount = dialog.querySelector('[data-dialog-count]');
-const zoomButton = dialog.querySelector('[data-dialog-zoom]');
 const previous = dialog.querySelector('[data-dialog-prev]');
 const next = dialog.querySelector('[data-dialog-next]');
 let photoIndex = 0;
 let mode = 'gallery';
 let opener;
-
-function setZoom(zoomed) {
-  dialogFrame.classList.toggle('zoomed', zoomed);
-  zoomButton.setAttribute('aria-pressed', String(zoomed));
-  zoomButton.setAttribute('aria-label', zoomed ? 'Reduzir foto' : 'Ampliar foto');
-}
 
 function renderMedia(url, label, desc = '') {
   const photo = new Image();
@@ -280,13 +260,12 @@ function renderMedia(url, label, desc = '') {
   dialogDesc.hidden = !desc;
   previous.hidden = next.hidden = mode !== 'gallery';
   dialogCount.textContent = mode === 'gallery' ? (photoIndex + 1) + ' de ' + gallery.length : '';
-  setZoom(false);
   document.querySelector('#save-reference').textContent='Salvar referência';
   document.querySelector('#media-actions').hidden = !['result', 'tone'].includes(mode);
 }
 
 function galleryStep(number) {
-  if (mode !== 'gallery' || dialogFrame.classList.contains('zoomed')) return;
+  if (mode !== 'gallery') return;
   photoIndex = (number + gallery.length) % gallery.length;
   const tile = gallery[photoIndex];
   renderMedia(tile.href, tile.querySelector('img').alt);
@@ -308,8 +287,7 @@ if (typeof dialog.showModal === 'function') {
 }
 dialog.querySelector('[data-dialog-close]').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
-dialog.addEventListener('close', () => { setZoom(false); if (!document.querySelector('#booking-dialog').open) opener?.focus(); });
-zoomButton.addEventListener('click', () => setZoom(!dialogFrame.classList.contains('zoomed')));
+dialog.addEventListener('close', () => { if (!document.querySelector('#booking-dialog').open) opener?.focus(); });
 previous.addEventListener('click', () => galleryStep(photoIndex - 1));
 next.addEventListener('click', () => galleryStep(photoIndex + 1));
 dialog.addEventListener('keydown', event => {
@@ -536,6 +514,15 @@ const categories=[...category.options].map(option=>{
   return [option.value,button];
 });
 
+const catalogHeading = document.querySelector('#catalog-heading');
+const serviceGrid = document.querySelector('#service-grid');
+const firstStandardCard = catalog.find(card => !card.hasAttribute('data-featured'));
+for (const card of catalog.filter(card => card.hasAttribute('data-featured'))) {
+  serviceGrid.insertBefore(card, firstStandardCard);
+}
+const catalogToggle = document.querySelector('#catalog-toggle');
+let catalogExpanded = false;
+
 function filterServices() {
   const query=clean(search.value).slice(0,100);
   const tokens=query.split(/\s+/).filter(word=>word.length>2 && !['para','com','quero','meu','cabelo'].includes(word));
@@ -548,9 +535,16 @@ function filterServices() {
     return {card,score};
   }).filter(item=>tokens.length && item.score<=Math.min(3,tokens.length+1)).sort((a,b)=>a.score-b.score).slice(0,4).map(item=>item.card) : [];
   const matches=exact.length?exact:nearby;
-  catalog.forEach(card=>{card.hidden=!matches.includes(card);});
+  const filtering = Boolean(query || category.value);
+  const featuredOnly = !filtering && !catalogExpanded;
+  const visibleCards = featuredOnly ? matches.filter(card => card.hasAttribute('data-featured')) : matches;
+  catalog.forEach(card => { card.hidden = !visibleCards.includes(card); });
+  catalogHeading.textContent = filtering ? 'Resultados do catálogo' : featuredOnly ? 'Mais procurados' : 'Todos os serviços';
+  catalogToggle.hidden = filtering;
+  catalogToggle.setAttribute('aria-expanded', String(catalogExpanded));
+  catalogToggle.querySelector('span').textContent = catalogExpanded ? 'Ver menos serviços' : 'Ver mais serviços';
   categories.forEach(([value,button])=>button.setAttribute('aria-pressed',String(value===category.value)));
-  resultStatus.textContent=nearby.length?'Resultados semelhantes à tua busca.':matches.length?matches.length+' serviço(s)':'Nenhum serviço encontrado.';
+  resultStatus.textContent=nearby.length?'Resultados semelhantes à tua busca.':visibleCards.length?visibleCards.length+(visibleCards.length === 1 ? ' serviço' : ' serviços'):'Nenhum serviço encontrado.';
   suggestions.replaceChildren();
   if (nearby.length) for (const card of nearby) suggestions.append(action('Buscar '+cardName(card),()=>{search.value=cardName(card);filterServices();}));
   if (query || category.value) suggestions.append(action('Limpar filtros',()=>{search.value='';category.value='';filterServices();search.focus();}));
@@ -562,6 +556,15 @@ function filterServices() {
   try { history.replaceState(null,'',url); } catch { /* Local file preview. */ }
   queueScroll();
 }
+catalogToggle.addEventListener('click', () => {
+  catalogExpanded = !catalogExpanded;
+  filterServices();
+  if (catalogExpanded) {
+    firstStandardCard?.querySelector('summary').focus();
+  } else {
+    catalogHeading.focus();
+  }
+});
 search.maxLength=100;
 search.addEventListener('input',filterServices);
 category.addEventListener('change',filterServices);
@@ -720,25 +723,6 @@ loadMap.addEventListener('click',()=>{
   map.focus();
   recordIntent('map-load');
 });
-const staticCover=document.querySelector('#static-cover');
-videoOptOut=preferences('cooper-static-cover',false)===true;
-function updateCover() {
-  staticCover.textContent=videoOptOut?'Ativar vídeo':'Usar foto estática';
-  if (videoOptOut) {
-    video.pause();
-    video.classList.remove('playing');
-    videoToggle.hidden=true;
-  }
-}
-staticCover.hidden=false;
-updateCover();
-staticCover.addEventListener('click',()=>{
-  videoOptOut=!videoOptOut;
-  savePreference('cooper-static-cover',videoOptOut);
-  updateCover();
-  controlVideo();
-});
-
 function recordIntent(name) {
   // Optional local measurements. Enable only during a moderated test.
   if (!preferences('cooper-ux-test',false)) return;

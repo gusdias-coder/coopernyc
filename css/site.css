@@ -87,13 +87,20 @@ main { padding-top:var(--header) }
 .mask > span { display:block }
 .hero .copy { max-width:38ch }
 .hero-media { min-width:0; aspect-ratio:1.12; background:#26231c; isolation:isolate }
-.hero-media > img,.hero-media > video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover }
-.hero-media video { opacity:0; transition:opacity .45s }
-.hero-media video.playing { opacity:1 }
+.hero-media > img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover }
+.hero-crossfade { opacity:0 }
+@media (prefers-reduced-motion:no-preference) {
+  .cover-animated .hero-crossfade { animation:cover-crossfade 11s ease-in-out infinite paused }
+  .cover-running .hero-crossfade { animation-play-state:running }
+}
+@keyframes cover-crossfade {
+  0%,25%,100% { opacity:0 }
+  43%,72% { opacity:1 }
+}
 .media-label { position:absolute; inset:auto 0 0; padding:24px 12px 10px; z-index:2; color:#fffaf2; background:linear-gradient(transparent,#15100de0) }
 .hero-print { position:absolute; z-index:3; right:-1%; bottom:10%; width:23%; aspect-ratio:.8; border:5px solid var(--cream); box-shadow:3px 6px 0 #0009; transform:rotate(-9deg) }
 .hero-print img { height:100% }
-.video-toggle { position:absolute; z-index:4; top:9px; right:9px; background:#0e0d0bd9; color:#fff; border:1px solid #fff7 }
+.cover-toggle { position:absolute; z-index:4; top:9px; right:9px; background:#0e0d0bd9; color:#fff; border:1px solid #fff7 }
 .street-band { background:var(--ink); color:var(--cream); border-block:3px double var(--gold); padding-block:12px }
 .street-band .wrap { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap }
 .street-band .kicker { color:#f0c666; margin:0 }
@@ -110,15 +117,24 @@ main { padding-top:var(--header) }
 .cover-section { overflow:hidden; padding-block:clamp(28px,6vw,80px) }
 .cover-layout { display:grid; grid-template-columns:.65fr 1.35fr; gap:clamp(20px,6vw,80px); align-items:center }
 .carousel { min-width:0; position:relative }
-.carousel-stage { position:relative; overflow:hidden; aspect-ratio:1.6; background:#241913; touch-action:pan-y }
+.carousel-stage { position:relative; overflow:hidden; aspect-ratio:1.6; background:#241913; touch-action:pan-y; border-radius:18px 18px 8px 8px }
 .carousel-stage figure { position:absolute; inset:0; }
 .carousel-stage img { height:100%; object-position:50% 37% }
-.carousel-stage figcaption { position:absolute; inset:auto 0 0; font:italic clamp(17px,2.4vw,28px) var(--serif); color:#fffaf3; padding:35px 14px 12px; background:linear-gradient(transparent,#0e0d0bee) }
-.carousel-controls { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:7px; margin-top:13px }
-.carousel-dots { display:flex; gap:2px; align-items:center }
+.carousel-stage figcaption { position:absolute; inset:auto 9px 9px; width:fit-content; max-width:calc(100% - 18px); font:italic clamp(15px,2vw,24px)/1.22 var(--serif); color:#fffaf3; padding:8px 13px; border-left:3px solid #e4ba61; border-radius:0 6px 6px 0; background:#0e0d0bec }
+.carousel-controls { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px 8px; margin-top:12px; border-radius:12px; background:#272018; color:var(--cream); padding:5px 7px }
+.carousel-dots,.carousel-actions { display:flex; align-items:center }
+.carousel-actions { gap:3px; margin-left:auto }
 .carousel-dots button { width:44px; height:44px; display:grid; place-items:center; border:0; padding:0; background:transparent }
-.carousel-dots button::after { content:""; width:8px; height:8px; border:1px solid currentColor; border-radius:50% }
-.carousel-dots button[aria-current="true"]::after { background:var(--gold); border-color:var(--gold); transform:scale(1.32) }
+.carousel-dots button::after { content:""; width:15px; height:4px; border-radius:999px; background:#b7a895 }
+.carousel-dots button[aria-current="true"]::after { width:27px; background:#f0c666 }
+.carousel-actions .icon-button,.dialog-controls .icon-button { border-radius:50%; border:1px solid #ac9878; background:transparent; color:inherit }
+.carousel-actions [data-next] { background:#f0c666; border-color:#f0c666; color:var(--ink) }
+.carousel-actions [data-play] { border-color:transparent }
+.carousel-controls :focus-visible { outline-color:#f0c666 }
+@media (max-width:380px) {
+  .carousel-controls { justify-content:center }
+  .carousel-actions { margin-left:0 }
+}
 .price-seal { position:absolute; z-index:3; right:10px; top:9px; display:grid; place-content:center; text-align:center; width:clamp(86px,12vw,152px); aspect-ratio:1; background:var(--gold); color:var(--ink); clip-path:polygon(50% 0%,59% 5%,69% 4%,75% 12%,85% 15%,87% 25%,96% 31%,95% 41%,100% 50%,95% 59%,96% 69%,87% 75%,85% 85%,75% 87%,69% 96%,59% 95%,50% 100%,41% 95%,31% 96%,25% 87%,15% 85%,13% 75%,4% 69%,5% 59%,0% 50%,5% 41%,4% 31%,13% 25%,15% 15%,25% 12%,31% 4%,41% 5%); transform:rotate(8deg); font-size:.61rem; text-transform:uppercase; font-weight:800; line-height:1.15 }
 .price-seal b { display:block; font:700 clamp(20px,3vw,38px)/1 var(--serif) }
 .chips { display:flex; flex-wrap:wrap; gap:7px; list-style:none; padding:0; margin-top:16px }
@@ -155,7 +171,6 @@ input:not([type=range],[type=checkbox]),select { min-height:46px; background:#ff
 .gallery-grid { columns:3; column-gap:13px; margin:24px 0 45px }
 .gallery-item { break-inside:avoid; display:block; position:relative; border:2px solid var(--ink); margin-bottom:13px; overflow:hidden }
 .gallery-item img { height:auto }
-.gallery-item span { position:absolute; right:7px; bottom:7px; display:grid; place-items:center; width:44px; height:44px; background:var(--cream); border:1px solid var(--ink) }
 .gallery-grid > a:nth-child(3n+1) img { aspect-ratio:1.12 }
 .gallery-grid > a:nth-child(3n+2) img { aspect-ratio:.83 }
 
@@ -199,7 +214,6 @@ dialog::backdrop { background:#0c0907dd }
 .dialog-head { padding-bottom:8px }
 .dialog-image { overflow:auto; min-height:14vh; background:#0e0d0b; touch-action:pan-y }
 .dialog-image img { width:100%; max-height:62dvh; object-fit:contain; transition:transform .25s; transform-origin:center }
-.dialog-image.zoomed img { transform:scale(1.65) }
 .dialog-desc { padding-block:10px }
 .cursor-ring { display:none }
 
@@ -214,7 +228,8 @@ dialog::backdrop { background:#0c0907dd }
   .hero-print { animation:print-in .85s .5s var(--ease) both }
   .js [data-reveal] { opacity:0; transform:translateY(18px); transition:opacity .65s var(--ease),transform .75s var(--ease); transition-delay:var(--delay,0ms) }
   .js [data-reveal].shown,.js [data-reveal]:focus-within { opacity:1; transform:none }
-  .carousel-stage figure.current,.dialog-image img,dialog[open],.nav.open { animation:frame-in .37s var(--ease) both }
+  .dialog-image img,dialog[open],.nav.open { animation:frame-in .37s var(--ease) both }
+  .carousel-stage figure.current { animation:slide-fade .42s ease-out both }
   .floating-wa { animation:wa-pulse 3s ease-out 2s 3 }
   .squirrel.shown { animation:squirrel-in .65s var(--ease) both }
   .faq details[open] p { animation:rise .25s var(--ease) both }
@@ -223,6 +238,7 @@ dialog::backdrop { background:#0c0907dd }
 @keyframes rise { from { opacity:0; transform:translateY(11px) } }
 @keyframes cover-in { from { clip-path:inset(0 0 0 100%) } to { clip-path:inset(0) } }
 @keyframes print-in { from { opacity:0; transform:translateY(22px) rotate(-2deg) } }
+@keyframes slide-fade { from { opacity:.45 } }
 @keyframes frame-in { from { opacity:.55; transform:translateX(8px) scale(1.02) } }
 @keyframes wa-pulse { 0%,100% { box-shadow:3px 3px 0 var(--ink) } 50% { box-shadow:3px 3px 0 var(--ink),0 0 0 7px #7a8b5c44 } }
 @keyframes squirrel-in { from { opacity:0; transform:translateX(-18px) rotate(-12deg) } }
@@ -281,7 +297,7 @@ dialog::backdrop { background:#0c0907dd }
 }
 
 @media (min-width:761px) and (prefers-reduced-motion:no-preference) {
-  [data-parallax] > img,[data-parallax] > video { transform:translateY(var(--parallax,0)) scale(1.045) }
+  [data-parallax] > img { transform:translateY(var(--parallax,0)) scale(1.045) }
   [data-parallax].feature-image:hover > img { transform:translateY(var(--parallax,0)) scale(1.09) }
 }
 .hero-media { overflow:hidden }
@@ -318,7 +334,6 @@ dialog::backdrop { background:#0c0907dd }
 .service-card details { width:100%; border-top:1px solid var(--line); padding-top:4px }
 .service-card summary { min-height:44px; padding-block:9px; cursor:pointer; font-weight:700 }
 .service-card .ux-chips { margin:0 }
-.ux-static { position:absolute; z-index:5; left:8px; top:8px; min-height:44px; padding:7px 9px; color:white; background:#16110eef; border:1px solid #fff8 }
 #booking-dialog { width:min(600px,calc(100% - 24px)); max-height:calc(100dvh - 24px); overflow:auto }
 #booking-dialog .contact-form { color:var(--ink); gap:12px; padding:14px }
 .ux-wide { grid-column:1/-1; min-width:0; overflow-wrap:anywhere }
@@ -333,4 +348,14 @@ html:has(#booking-dialog[open]) { overflow:hidden }
   #booking-dialog .contact-form { grid-template-columns:1fr; padding:11px }
   #booking-dialog .button { width:100% }
   .ux-panel { padding:11px }
+}
+
+.catalog-heading { margin-top:20px; scroll-margin-top:calc(var(--header) + 18px) }
+.catalog-heading + .service-grid { margin-top:12px }
+.catalog-toggle { margin-top:20px }
+.catalog-toggle .icon { transform:rotate(90deg) }
+.catalog-toggle[aria-expanded="true"] .icon { transform:rotate(-90deg) }
+@media (max-width:760px) {
+  .catalog-toggle { width:100% }
+  .carousel-stage { aspect-ratio:1.35 }
 }
